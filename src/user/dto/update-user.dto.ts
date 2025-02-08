@@ -10,4 +10,6 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   username?: string;
 
   avatar_url?: string;
+
+  premium_account?: boolean;
 }

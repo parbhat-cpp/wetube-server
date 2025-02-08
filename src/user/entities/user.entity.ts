@@ -25,4 +25,26 @@ export class User {
     type: 'text',
   })
   avatar_url: string;
+
+  @Column({
+    type: 'bool',
+    default: false,
+  })
+  premium_account: boolean;
+}
+
+export interface UserType {
+  id: string;
+  full_name: string;
+  username: string;
+  avatar_url: string;
+  premium_account: boolean;
+}
+export interface SocketUserType {
+  id: string;
+  socketId: string;
+  full_name: string;
+  username: string;
+  avatar_url: string;
+  premium_account: boolean;
 }

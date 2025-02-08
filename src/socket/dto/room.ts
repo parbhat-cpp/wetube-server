@@ -1,4 +1,5 @@
-import { IsNotEmpty } from 'class-validator';
+import { IsArray, IsDate, IsNotEmpty, IsNumber } from 'class-validator';
+import { SocketUserType } from 'src/user/entities/user.entity';
 
 export class Room {
   @IsNotEmpty()
@@ -13,6 +14,12 @@ export class Room {
   @IsNotEmpty()
   isPublic: boolean;
 
-  @IsNotEmpty()
-  country: string;
+  @IsNumber()
+  attendeesCount?: number;
+
+  @IsArray()
+  attendees?: Array<SocketUserType>;
+
+  @IsDate()
+  createdAt?: Date;
 }

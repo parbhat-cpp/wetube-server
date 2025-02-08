@@ -8,4 +8,6 @@ export class CreateUserDto {
   username: string;
 
   avatar_url: string;
+
+  premium_account: boolean;
 }
