@@ -12,4 +12,9 @@ export enum SocketEvents {
   ATTENDEE_LEFT = 'attendee-left',
   ATTENDEE_KICKED = 'attendee-kicked',
   RECEIVE_MESSAGE = 'receive-message',
+  EXIT_ROOM = 'exit-room',
+  REMOVE_ATTENDEE = 'remove-attendee',
+  SEND_MESSAGE = 'send-message',
+  SET_VIDEO = 'set-video',
+  SET_VIDEO_ID = 'set-video-id',
 }

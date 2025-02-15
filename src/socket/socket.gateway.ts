@@ -17,6 +17,7 @@ import { JoinRoomDto } from './dto/join-room';
 import { Logger } from '@nestjs/common';
 import { RemoveAttendeeDto } from './dto/remove-attendee';
 import { ChatsDto } from './dto/chats';
+import { SetVideoDto } from './dto/set-video';
 
 @WebSocketGateway({
   cors: {
@@ -157,7 +158,7 @@ export class SocketGateway implements OnGatewayConnection {
     }
   }
 
-  @SubscribeMessage('exit-room')
+  @SubscribeMessage(SocketEvents.EXIT_ROOM)
   async leaveRoom(client: Socket, roomId: string) {
     const userId = client.id;
 
@@ -233,7 +234,7 @@ export class SocketGateway implements OnGatewayConnection {
     }
   }
 
-  @SubscribeMessage('remove-attendee')
+  @SubscribeMessage(SocketEvents.REMOVE_ATTENDEE)
   async removeAttendee(client: Socket, removeAttendeeData: RemoveAttendeeDto) {
     const roomId = removeAttendeeData.roomId;
     const userId = removeAttendeeData.userId;
@@ -297,7 +298,7 @@ export class SocketGateway implements OnGatewayConnection {
     }
   }
 
-  @SubscribeMessage('send-message')
+  @SubscribeMessage(SocketEvents.SEND_MESSAGE)
   async sendMessage(client: Socket, chat: ChatsDto) {
     const userId = client.id;
     const roomId = chat.roomId;
@@ -332,6 +333,45 @@ export class SocketGateway implements OnGatewayConnection {
         client.to(userSocketId).emit(SocketEvents.RECEIVE_MESSAGE, {
           sendBy: chat.user,
           message: chat.message,
+        });
+      }
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SET_VIDEO)
+  async setVideo(client: Socket, setVideoData: SetVideoDto) {
+    const roomId = setVideoData.roomId;
+    const videoId = setVideoData.videoId;
+    const username = setVideoData.username;
+
+    const publicRoomExists = await this.redisService.redis.hexists(
+      RoomType.PUBLIC,
+      roomId,
+    );
+
+    const privateRoomExists = await this.redisService.redis.hexists(
+      RoomType.PRIVATE,
+      roomId,
+    );
+
+    if (publicRoomExists || privateRoomExists) {
+      let roomType = '';
+
+      if (publicRoomExists) {
+        roomType = RoomType.PUBLIC;
+      } else {
+        roomType = RoomType.PRIVATE;
+      }
+      const roomData = await this.redisService.redis.hget(roomType, roomId);
+
+      const roomDataJson: Room = JSON.parse(roomData);
+
+      for (let i = 0; i < roomDataJson.attendees.length; i++) {
+        const userSocketId = roomDataJson.attendees[i].socketId;
+
+        client.to(userSocketId).emit(SocketEvents.SET_VIDEO_ID, {
+          username: username,
+          videoId: videoId,
         });
       }
     }
