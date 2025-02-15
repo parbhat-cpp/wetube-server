@@ -7,4 +7,9 @@ export enum SocketEvents {
   ENTER_ROOM = 'enter-room',
   NEW_ATTENDEE = 'new-attendee',
   ROOM_NOT_FOUND = 'room-not-found',
+  AUTH_FAILED = 'auth-failed',
+  LEAVE_ROOM = 'leave-room',
+  ATTENDEE_LEFT = 'attendee-left',
+  ATTENDEE_KICKED = 'attendee-kicked',
+  RECEIVE_MESSAGE = 'receive-message',
 }

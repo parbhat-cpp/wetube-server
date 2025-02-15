@@ -16,6 +16,7 @@ import { CreateRoomDto } from './dto/create-room';
 import { JoinRoomDto } from './dto/join-room';
 import { Logger } from '@nestjs/common';
 import { RemoveAttendeeDto } from './dto/remove-attendee';
+import { ChatsDto } from './dto/chats';
 
 @WebSocketGateway({
   cors: {
@@ -26,35 +27,35 @@ import { RemoveAttendeeDto } from './dto/remove-attendee';
   },
   transports: ['websocket', 'polling'],
 })
-export class SocketGateway {
+export class SocketGateway implements OnGatewayConnection {
   constructor(
     private readonly redisService: RedisService,
     private jwtService: JwtService,
-  ) { }
+  ) {}
 
   @WebSocketServer()
   server: Server;
 
-  // async handleConnection(socket: Socket) {
-  //   const token = socket.handshake.headers.authorization?.split(' ')[1];
+  async handleConnection(socket: Socket) {
+    const token = socket.handshake.headers.authorization?.split(' ')[1];
 
-  //   if (!token) {
-  //     throw new WsException('Authorization Error: No token provided');
-  //   }
+    if (!token) {
+      throw new WsException('Authorization Error: No token provided');
+    }
 
-  //   try {
-  //     await this.jwtService.verifyAsync(token, {
-  //       secret: process.env.JWT_SECRET as string,
-  //     });
-  //     socket['user'] = {
-  //       socketId: socket.id,
-  //     };
-  //   } catch (e) {
-  //     Logger.log(e);
+    try {
+      await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET as string,
+      });
+      socket['user'] = {
+        socketId: socket.id,
+      };
+    } catch (e) {
+      Logger.log(e);
 
-  //     socket.emit('auth-failed');
-  //   }
-  // }
+      socket.emit(SocketEvents.AUTH_FAILED);
+    }
+  }
 
   @SubscribeMessage(SocketEvents.CREATE_ROOM)
   async createRoom(client: Socket, createRoomData: CreateRoomDto) {
@@ -190,7 +191,7 @@ export class SocketGateway {
         for (let i = 0; i < roomDataJson.attendees.length; i++) {
           const attendee = roomDataJson.attendees[i];
 
-          client.to(attendee.socketId).emit('leave-room');
+          client.to(attendee.socketId).emit(SocketEvents.LEAVE_ROOM);
 
           await this.redisService.redis.hdel(roomType, roomId);
         }
@@ -213,12 +214,18 @@ export class SocketGateway {
 
         await this.redisService.redis.hset(roomType, updateRoomData);
 
-        client.emit('attendee-left', user[0].username ?? user[0].full_name);
+        client.emit(
+          SocketEvents.ATTENDEE_LEFT,
+          user[0].username ?? user[0].full_name,
+        );
 
         for (let i = 0; i < roomDataJson.attendees.length; i++) {
           client
             .to(roomDataJson.attendees[i].socketId)
-            .emit('attendee-left', user[0].username ?? user[0].full_name);
+            .emit(
+              SocketEvents.ATTENDEE_LEFT,
+              user[0].username ?? user[0].full_name,
+            );
         }
       }
     } else {
@@ -260,7 +267,7 @@ export class SocketGateway {
         return;
       }
 
-      client.to(userId).emit('leave-room');
+      client.to(userId).emit(SocketEvents.LEAVE_ROOM);
 
       const user = roomDataJson.attendees.filter(
         (attendee) => attendee.socketId === userId,
@@ -278,15 +285,55 @@ export class SocketGateway {
 
       await this.redisService.redis.hset(roomType, updateRoomData);
 
-      client.emit('attendee-kicked', user[0]);
+      client.emit(SocketEvents.ATTENDEE_KICKED, user[0]);
 
       for (let i = 0; i < roomDataJson.attendees.length; i++) {
         client
           .to(roomDataJson.attendees[i].socketId)
-          .emit('attendee-kicked', user[0]);
+          .emit(SocketEvents.ATTENDEE_KICKED, user[0]);
       }
     } else {
       client.emit(SocketEvents.ROOM_NOT_FOUND);
+    }
+  }
+
+  @SubscribeMessage('send-message')
+  async sendMessage(client: Socket, chat: ChatsDto) {
+    const userId = client.id;
+    const roomId = chat.roomId;
+    chat.user.socketId = userId;
+
+    const publicRoomExists = await this.redisService.redis.hexists(
+      RoomType.PUBLIC,
+      roomId,
+    );
+
+    const privateRoomExists = await this.redisService.redis.hexists(
+      RoomType.PRIVATE,
+      roomId,
+    );
+
+    if (publicRoomExists || privateRoomExists) {
+      let roomType = '';
+
+      if (publicRoomExists) {
+        roomType = RoomType.PUBLIC;
+      } else {
+        roomType = RoomType.PRIVATE;
+      }
+
+      const roomData = await this.redisService.redis.hget(roomType, roomId);
+
+      const roomDataJson: Room = JSON.parse(roomData);
+
+      for (let i = 0; i < roomDataJson.attendees.length; i++) {
+        const userSocketId = roomDataJson.attendees[i].socketId;
+
+        client.to(userSocketId).emit(SocketEvents.RECEIVE_MESSAGE, {
+          sendBy: chat.user,
+          message: chat.message,
+        });
+      }
     }
   }
 }
