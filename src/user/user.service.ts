@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -48,6 +49,16 @@ export class UserService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (updateUserDto.username) {
+      const usernameExists = await this.usersRepository.findOneBy({
+        username: updateUserDto.username,
+      });
+
+      if (usernameExists) {
+        throw new ConflictException('Username already taken');
+      }
     }
 
     await this.usersRepository.update(
