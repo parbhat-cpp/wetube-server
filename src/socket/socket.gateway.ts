@@ -18,6 +18,8 @@ import { Logger } from '@nestjs/common';
 import { RemoveAttendeeDto } from './dto/remove-attendee';
 import { ChatsDto } from './dto/chats';
 import { SetVideoDto } from './dto/set-video';
+import { PauseVideoDto } from './dto/pause-video';
+import { SeekVideoDto } from './dto/seek-video';
 
 @WebSocketGateway({
   cors: {
@@ -335,6 +337,8 @@ export class SocketGateway implements OnGatewayConnection {
           message: chat.message,
         });
       }
+    } else {
+      client.emit(SocketEvents.ROOM_NOT_FOUND);
     }
   }
 
@@ -374,6 +378,88 @@ export class SocketGateway implements OnGatewayConnection {
           videoId: videoId,
         });
       }
+    } else {
+      client.emit(SocketEvents.ROOM_NOT_FOUND);
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.PAUSE_VIDEO)
+  async pauseVideo(client: Socket, pauseVideoData: PauseVideoDto) {
+    const roomId = pauseVideoData.roomId;
+    const username = pauseVideoData.username;
+
+    const publicRoomExists = await this.redisService.redis.hexists(
+      RoomType.PUBLIC,
+      roomId,
+    );
+
+    const privateRoomExists = await this.redisService.redis.hexists(
+      RoomType.PRIVATE,
+      roomId,
+    );
+
+    if (publicRoomExists || privateRoomExists) {
+      let roomType = '';
+
+      if (publicRoomExists) {
+        roomType = RoomType.PUBLIC;
+      } else {
+        roomType = RoomType.PRIVATE;
+      }
+      const roomData = await this.redisService.redis.hget(roomType, roomId);
+
+      const roomDataJson: Room = JSON.parse(roomData);
+
+      for (let i = 0; i < roomDataJson.attendees.length; i++) {
+        const userSocketId = roomDataJson.attendees[i].socketId;
+
+        client.to(userSocketId).emit(SocketEvents.SET_VIDEO_PAUSE, {
+          username: username,
+        });
+      }
+    } else {
+      client.emit(SocketEvents.ROOM_NOT_FOUND);
+    }
+  }
+
+  @SubscribeMessage(SocketEvents.SEEK_VIDEO)
+  async seekVideo(client: Socket, seekVideoData: SeekVideoDto) {
+    const position = seekVideoData.position;
+    const roomId = seekVideoData.roomId;
+    const username = seekVideoData.username;
+
+    const publicRoomExists = await this.redisService.redis.hexists(
+      RoomType.PUBLIC,
+      roomId,
+    );
+
+    const privateRoomExists = await this.redisService.redis.hexists(
+      RoomType.PRIVATE,
+      roomId,
+    );
+
+    if (publicRoomExists || privateRoomExists) {
+      let roomType = '';
+
+      if (publicRoomExists) {
+        roomType = RoomType.PUBLIC;
+      } else {
+        roomType = RoomType.PRIVATE;
+      }
+      const roomData = await this.redisService.redis.hget(roomType, roomId);
+
+      const roomDataJson: Room = JSON.parse(roomData);
+
+      for (let i = 0; i < roomDataJson.attendees.length; i++) {
+        const userSocketId = roomDataJson.attendees[i].socketId;
+
+        client.to(userSocketId).emit(SocketEvents.SEEK_VIDEO_TO, {
+          username: username,
+          position: position,
+        });
+      }
+    } else {
+      client.emit(SocketEvents.ROOM_NOT_FOUND);
     }
   }
 }
