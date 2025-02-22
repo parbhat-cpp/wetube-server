@@ -30,6 +30,7 @@
     "@nestjs/platform-socket.io": "*",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "*",
+    "@supabase/supabase-js": "^2.48.1",
     "cache-manager": "^6.4.0",
     "cache-manager-redis-store": "^3.0.1",
     "class-transformer": "^0.5.1",

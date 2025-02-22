@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UUID } from 'node:crypto';
+import { supabase } from 'src/supabase';
 
 @Injectable()
 export class UserService {
@@ -61,19 +67,31 @@ export class UserService {
   /**
    * Deletes User by ID
    * @param id - User ID
-   * @returns {Promise<User>} Returns deleted user data
+   * @returns {Promise<string>} Returns deleted user data
    */
-  async remove(id: UUID): Promise<User> {
-    const user = await this.usersRepository.findOneBy({
-      id: id,
-    });
+  async remove(id: UUID): Promise<string> {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', `${id}`);
 
-    if (!user) throw new NotFoundException('User not found');
+    if (profileError) {
+      throw new HttpException(
+        `Error deleting profile: ${profileError.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
-    await this.usersRepository.delete({
-      id: id,
-    });
+    // Delete from authentication (Admin API)
+    const { error: authError } = await supabase.auth.admin.deleteUser(`${id}`);
 
-    return user;
+    if (authError) {
+      throw new HttpException(
+        `Error deleting user from auth: ${authError.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return 'User deleted';
   }
 }
