@@ -27,10 +27,10 @@ export class User {
   avatar_url: string;
 
   @Column({
-    type: 'bool',
-    default: false,
+    type: 'uuid',
+    nullable: true,
   })
-  premium_account: boolean;
+  premium_account?: UUID;
 }
 
 export interface UserType {
@@ -38,7 +38,7 @@ export interface UserType {
   full_name: string;
   username: string;
   avatar_url: string;
-  premium_account: boolean;
+  premium_account: UUID;
 }
 export interface SocketUserType {
   id: string;
@@ -46,5 +46,5 @@ export interface SocketUserType {
   full_name: string;
   username: string;
   avatar_url: string;
-  premium_account: boolean;
+  premium_account: UUID;
 }

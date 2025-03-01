@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { SocketModule } from './socket/socket.module';
 import { JwtModule } from '@nestjs/jwt';
+import { RoomsModule } from './rooms/rooms.module';
+import { OrderModule } from './order/order.module';
 import 'dotenv/config';
 
 @Module({
@@ -23,6 +25,8 @@ import 'dotenv/config';
       secret: process.env.JWT_SECRET as string,
       signOptions: { expiresIn: '60s' },
     }),
+    RoomsModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

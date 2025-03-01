@@ -30,7 +30,7 @@ import { SeekVideoDto } from './dto/seek-video';
   },
   transports: ['websocket', 'polling'],
 })
-export class SocketGateway implements OnGatewayConnection {
+export class SocketGateway {
   constructor(
     private readonly redisService: RedisService,
     private jwtService: JwtService,
@@ -39,26 +39,26 @@ export class SocketGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  async handleConnection(socket: Socket) {
-    const token = socket.handshake.headers.authorization?.split(' ')[1];
+  // async handleConnection(socket: Socket) {
+  //   const token = socket.handshake.headers.authorization?.split(' ')[1];
 
-    if (!token) {
-      throw new WsException('Authorization Error: No token provided');
-    }
+  //   if (!token) {
+  //     throw new WsException('Authorization Error: No token provided');
+  //   }
 
-    try {
-      await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET as string,
-      });
-      socket['user'] = {
-        socketId: socket.id,
-      };
-    } catch (e) {
-      Logger.log(e);
+  //   try {
+  //     await this.jwtService.verifyAsync(token, {
+  //       secret: process.env.JWT_SECRET as string,
+  //     });
+  //     socket['user'] = {
+  //       socketId: socket.id,
+  //     };
+  //   } catch (e) {
+  //     Logger.log(e);
 
-      socket.emit(SocketEvents.AUTH_FAILED);
-    }
-  }
+  //     socket.emit(SocketEvents.AUTH_FAILED);
+  //   }
+  // }
 
   @SubscribeMessage(SocketEvents.CREATE_ROOM)
   async createRoom(client: Socket, createRoomData: CreateRoomDto) {
