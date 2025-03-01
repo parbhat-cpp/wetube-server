@@ -7,6 +7,7 @@ import { SocketModule } from './socket/socket.module';
 import { JwtModule } from '@nestjs/jwt';
 import { RoomsModule } from './rooms/rooms.module';
 import { OrderModule } from './order/order.module';
+import { RazorpayModule } from 'nestjs-razorpay';
 import 'dotenv/config';
 
 @Module({
@@ -27,6 +28,10 @@ import 'dotenv/config';
     }),
     RoomsModule,
     OrderModule,
+    RazorpayModule.forRoot({
+      key_id: process.env.RAZOR_PAY_KEY_ID,
+      key_secret: process.env.RAZOR_PAY_KEY_SECRET,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
