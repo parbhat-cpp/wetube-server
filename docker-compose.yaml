@@ -12,7 +12,7 @@ services:
     container_name: wetube-backend-prod
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     environment:
       NODE_ENV: production
     ports:
