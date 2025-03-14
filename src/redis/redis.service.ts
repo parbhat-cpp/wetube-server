@@ -8,7 +8,7 @@ export class RedisService {
 
   constructor() {
     this.redis = new Redis({
-      host: process.env.NODE_ENV === 'production' ? 'redis' : '127.0.0.1',
+      host: process.env.REDIS_HOST,
       port: parseInt(process.env.REDIS_PORT, 10) || 6379,
     });
   }
