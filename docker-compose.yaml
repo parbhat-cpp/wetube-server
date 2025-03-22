@@ -21,6 +21,8 @@ services:
       - .env
     depends_on:
       - redis
+    networks:
+      - wetube_network
   redis:
     image: redis
     restart: always
@@ -28,5 +30,10 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - wetube_network
 volumes:
   redis_data:
+networks:
+  wetube_network:
+    driver: bridge
